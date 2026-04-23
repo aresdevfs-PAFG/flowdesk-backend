@@ -29,6 +29,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<flyway.version>10.21.0</flyway.version>
 	</properties>
 	<dependencies>
 		<!-- Web -->
@@ -68,10 +69,14 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Flyway (flyway-core incluye soporte nativo para PostgreSQL) -->
+		<!-- Flyway -->
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
 		<!-- JWT -->
