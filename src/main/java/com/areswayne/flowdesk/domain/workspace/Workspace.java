@@ -3,6 +3,7 @@ package com.areswayne.flowdesk.domain.workspace;
 import com.areswayne.flowdesk.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.NonNull;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ public class Workspace {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @NonNull
     private UUID id;
 
     @Column(nullable = false, length = 100)

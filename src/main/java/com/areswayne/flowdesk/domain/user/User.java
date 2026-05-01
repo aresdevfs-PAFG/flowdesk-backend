@@ -3,6 +3,7 @@ package com.areswayne.flowdesk.domain.user;
 import com.areswayne.flowdesk.shared.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.NonNull;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -18,6 +19,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @NonNull
     private UUID id;
 
     @Column(nullable = false, length = 100)
