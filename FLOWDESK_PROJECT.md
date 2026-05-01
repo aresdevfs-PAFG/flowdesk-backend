@@ -208,7 +208,7 @@ Lo que queda fuera del MVP (versiones futuras):
 | Fase | Contenido | Estado |
 |---|---|---|
 | Fase 1 | Enums, entidades JPA, migraciones Flyway | ✅ Completada |
-| Fase 2 | Spring Security + JWT, Auth endpoints | 🔄 En progreso |
+| Fase 2 | Spring Security + JWT, Auth endpoints | ✅ Completada  |
 | Fase 3 | Workspaces, Projects, Tasks CRUD + Kanban | Pendiente |
 | Fase 4 | Time Tracking + Comments WebSocket | Pendiente |
 | Fase 5 | Billing + generación de facturas PDF | Pendiente |
