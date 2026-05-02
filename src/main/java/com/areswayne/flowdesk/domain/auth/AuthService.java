@@ -28,7 +28,7 @@ public class AuthService {
             throw new IllegalArgumentException("El email ya está registrado");
         }
 
-        @NonNull User user = User.builder()
+        User user = User.builder()
                 .name(request.name())
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))

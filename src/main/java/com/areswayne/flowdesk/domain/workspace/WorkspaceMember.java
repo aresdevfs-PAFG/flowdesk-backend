@@ -4,7 +4,6 @@ import com.areswayne.flowdesk.domain.user.User;
 import com.areswayne.flowdesk.shared.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.NonNull;
 
 import java.util.UUID;
 
@@ -20,7 +19,6 @@ public class WorkspaceMember {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @NonNull
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
