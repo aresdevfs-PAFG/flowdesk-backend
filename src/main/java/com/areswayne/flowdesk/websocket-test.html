@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowDesk — WebSocket Tester</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+    h1 { font-size: 1.4rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 0.85rem; color: #64748b; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1000px; }
+    .card { background: #1e2130; border: 1px solid #2d3148; border-radius: 12px; padding: 1.25rem; }
+    .card h2 { font-size: 0.9rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+    label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.35rem; margin-top: 0.75rem; }
+    input, textarea { width: 100%; background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 0.6rem 0.75rem; color: #e2e8f0; font-size: 0.85rem; outline: none; transition: border-color .2s; }
+    input:focus, textarea:focus { border-color: #6366f1; }
+    textarea { resize: vertical; min-height: 70px; font-family: inherit; }
+    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; transition: opacity .2s; margin-top: 0.75rem; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-success { background: #22c55e; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.3rem 0.75rem; border-radius: 20px; margin-bottom: 1rem; }
+    .status.connected { background: #14532d; color: #4ade80; }
+    .status.disconnected { background: #3f1515; color: #f87171; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .status.connected .status-dot { background: #4ade80; animation: pulse 2s infinite; }
+    .status.disconnected .status-dot { background: #f87171; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .log { background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 0.75rem; height: 280px; overflow-y: auto; font-size: 0.78rem; font-family: 'Cascadia Code', 'Fira Code', monospace; }
+    .log-entry { padding: 0.3rem 0; border-bottom: 1px solid #1e2130; line-height: 1.5; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-entry .time { color: #475569; margin-right: 0.5rem; }
+    .log-entry.incoming .badge { background: #14532d; color: #4ade80; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
+    .log-entry.outgoing .badge { background: #1e3a5f; color: #60a5fa; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
+    .log-entry.system .badge { background: #3b2f14; color: #fbbf24; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
+    .log-entry.error .badge { background: #3f1515; color: #f87171; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
+    .log-entry .body { color: #cbd5e1; word-break: break-all; }
+    .full-width { grid-column: 1 / -1; }
+    .hint { font-size: 0.75rem; color: #475569; margin-top: 0.4rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<h1>🔌 FlowDesk — WebSocket Tester</h1>
+<p class="subtitle">Prueba los comentarios en tiempo real de FlowDesk</p>
+
+<div class="grid">
+
+  <!-- Conexión -->
+  <div class="card">
+    <h2>1. Conectar</h2>
+
+    <div id="statusBadge" class="status disconnected">
+      <div class="status-dot"></div>
+      Desconectado
+    </div>
+
+    <label>JWT Token</label>
+    <input id="tokenInput" type="text" placeholder="eyJhbGciOiJIUzM4NCJ9...">
+    <p class="hint">Cópialo del response de POST /api/auth/login en Postman</p>
+
+    <label>WebSocket URL</label>
+    <input id="wsUrl" type="text" value="http://localhost:8080/ws">
+
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="connect()">⚡ Conectar</button>
+      <button class="btn btn-danger" id="disconnectBtn" onclick="disconnect()" disabled>✕ Desconectar</button>
+    </div>
+  </div>
+
+  <!-- Suscripción -->
+  <div class="card">
+    <h2>2. Suscribirse a una tarea</h2>
+    <p class="hint" style="margin-bottom: 0.75rem">Al suscribirte, recibirás en tiempo real todos los comentarios nuevos que se envíen a esa tarea — desde esta página o desde Postman.</p>
+
+    <label>Task ID</label>
+    <input id="taskIdInput" type="text" placeholder="c48279ac-7c46-497c-b145-b9067f03726c">
+    <p class="hint">El UUID de la tarea que quieres observar</p>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="subscribeBtn" onclick="subscribe()" disabled>📡 Suscribirse</button>
+      <button class="btn btn-secondary" id="unsubscribeBtn" onclick="unsubscribe()" disabled>✕ Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Enviar comentario -->
+  <div class="card">
+    <h2>3. Enviar comentario por WebSocket</h2>
+    <p class="hint" style="margin-bottom: 0.75rem">Este comentario viaja por el canal WebSocket abierto — sin hacer un POST HTTP. El servidor lo guarda y lo brodcastea a todos los suscritos.</p>
+
+    <label>Mensaje</label>
+    <textarea id="commentBody" placeholder="Escribe un comentario..."></textarea>
+
+    <button class="btn btn-primary" id="sendBtn" onclick="sendComment()" disabled>
+      ➤ Enviar por WebSocket
+    </button>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <h2>Monitor de mensajes</h2>
+    <div class="log" id="log">
+      <div class="log-entry system">
+        <span class="badge">SISTEMA</span>
+        <span class="body">Esperando conexión...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instrucciones -->
+  <div class="card full-width">
+    <h2>Cómo probar en tiempo real</h2>
+    <p class="hint">
+      <strong style="color:#e2e8f0">Prueba básica (1 ventana):</strong> Conéctate, suscríbete a una tarea, envía un comentario por WebSocket. Verás el mensaje aparecer en el monitor instantáneamente — el servidor lo recibió, lo guardó en la BD y te lo retransmitió.<br><br>
+      <strong style="color:#e2e8f0">Prueba en tiempo real (2 ventanas):</strong> Abre esta página en dos pestañas del navegador. En ambas conéctate y suscríbete al mismo taskId. Cuando envíes un comentario desde una pestaña, aparecerá instantáneamente en la otra — sin recargar, sin polling. Así es como funciona en producción.<br><br>
+      <strong style="color:#e2e8f0">Prueba mixta:</strong> Envía el comentario desde Postman (POST /api/tasks/{taskId}/comments) y mira cómo aparece en esta página en tiempo real. El backend hace el broadcast automáticamente al guardar el comentario.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  let stompClient = null;
+  let subscription = null;
+
+  function log(type, message) {
+    const logEl = document.getElementById('log');
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+    const labels = { incoming: 'RECIBIDO', outgoing: 'ENVIADO', system: 'SISTEMA', error: 'ERROR' };
+    const time = new Date().toLocaleTimeString('es-MX', { hour12: false });
+    entry.innerHTML = `<span class="time">${time}</span><span class="badge">${labels[type] || type}</span><span class="body">${message}</span>`;
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(connected) {
+    const badge = document.getElementById('statusBadge');
+    badge.className = `status ${connected ? 'connected' : 'disconnected'}`;
+    badge.innerHTML = `<div class="status-dot"></div>${connected ? 'Conectado' : 'Desconectado'}`;
+    document.getElementById('disconnectBtn').disabled = !connected;
+    document.getElementById('subscribeBtn').disabled = !connected;
+    document.getElementById('sendBtn').disabled = !connected;
+  }
+
+  function connect() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const url = document.getElementById('wsUrl').value.trim();
+
+    if (!token) { log('error', 'Pega tu JWT token primero'); return; }
+
+    const socket = new SockJS(url);
+    stompClient = Stomp.over(socket);
+    stompClient.debug = null; // silencia logs internos
+
+    const headers = { Authorization: `Bearer ${token}` };
+
+    stompClient.connect(headers, () => {
+      log('system', `Conectado a ${url}`);
+      setStatus(true);
+    }, (err) => {
+      log('error', `Error de conexión: ${err}`);
+      setStatus(false);
+    });
+  }
+
+  function disconnect() {
+    if (stompClient) {
+      stompClient.disconnect(() => {
+        log('system', 'Desconectado');
+        setStatus(false);
+        subscription = null;
+        document.getElementById('unsubscribeBtn').disabled = true;
+      });
+    }
+  }
+
+  function subscribe() {
+    const taskId = document.getElementById('taskIdInput').value.trim();
+    if (!taskId) { log('error', 'Escribe un Task ID primero'); return; }
+    if (!stompClient || !stompClient.connected) { log('error', 'Conéctate primero'); return; }
+
+    const channel = `/topic/tasks/${taskId}/comments`;
+
+    subscription = stompClient.subscribe(channel, (message) => {
+      try {
+        const data = JSON.parse(message.body);
+        log('incoming', `<strong>${data.authorName}:</strong> ${data.body}`);
+      } catch {
+        log('incoming', message.body);
+      }
+    });
+
+    log('system', `Suscrito a ${channel}`);
+    document.getElementById('unsubscribeBtn').disabled = false;
+  }
+
+  function unsubscribe() {
+    if (subscription) {
+      subscription.unsubscribe();
+      subscription = null;
+      log('system', 'Suscripción cancelada');
+      document.getElementById('unsubscribeBtn').disabled = true;
+    }
+  }
+
+  function sendComment() {
+    const taskId = document.getElementById('taskIdInput').value.trim();
+    const body = document.getElementById('commentBody').value.trim();
+
+    if (!taskId) { log('error', 'Escribe un Task ID primero'); return; }
+    if (!body) { log('error', 'El comentario no puede estar vacío'); return; }
+    if (!stompClient || !stompClient.connected) { log('error', 'Conéctate primero'); return; }
+
+    const payload = JSON.stringify({ body });
+    stompClient.send(`/app/tasks/${taskId}/comments`, {}, payload);
+    log('outgoing', body);
+    document.getElementById('commentBody').value = '';
+  }
+</script>
+
+</body>
+</html>

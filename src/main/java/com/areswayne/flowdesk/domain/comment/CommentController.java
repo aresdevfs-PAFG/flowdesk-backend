@@ -10,6 +10,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,7 +57,8 @@ public class CommentController {
     @MessageMapping("/tasks/{taskId}/comments")
     public void handleWebSocketComment(
             @DestinationVariable UUID taskId,
-            CommentRequest request) {
-        commentService.create(taskId, request);
+            CommentRequest request,
+            Principal principal) {
+        commentService.create(taskId, request, principal.getName());
     }
 }

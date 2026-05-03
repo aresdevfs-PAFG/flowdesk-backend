@@ -26,14 +26,23 @@ public class CommentService {
 
     @Transactional
     public CommentResponse create(UUID taskId, CommentRequest request) {
-        User current = getCurrentUser();
+        return createComment(taskId, request, getCurrentUser());
+    }
 
+    @Transactional
+    public CommentResponse create(UUID taskId, CommentRequest request, String email) {
+        User current = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        return createComment(taskId, request, current);
+    }
+
+    private CommentResponse createComment(UUID taskId, CommentRequest request, User author) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
 
         Comment comment = Comment.builder()
                 .task(task)
-                .author(current)
+                .author(author)
                 .body(request.body())
                 .build();
 
