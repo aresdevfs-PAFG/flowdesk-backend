@@ -6,55 +6,387 @@
   <title>FlowDesk — WebSocket Tester</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
-    h1 { font-size: 1.4rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.25rem; }
-    .subtitle { font-size: 0.85rem; color: #64748b; margin-bottom: 2rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1000px; }
-    .card { background: #1e2130; border: 1px solid #2d3148; border-radius: 12px; padding: 1.25rem; }
-    .card h2 { font-size: 0.9rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
-    label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.35rem; margin-top: 0.75rem; }
-    input, textarea { width: 100%; background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 0.6rem 0.75rem; color: #e2e8f0; font-size: 0.85rem; outline: none; transition: border-color .2s; }
-    input:focus, textarea:focus { border-color: #6366f1; }
-    textarea { resize: vertical; min-height: 70px; font-family: inherit; }
-    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; transition: opacity .2s; margin-top: 0.75rem; }
-    .btn:hover { opacity: 0.85; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: #6366f1; color: white; }
-    .btn-success { background: #22c55e; color: white; }
-    .btn-danger { background: #ef4444; color: white; }
-    .btn-secondary { background: #334155; color: #e2e8f0; }
-    .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.3rem 0.75rem; border-radius: 20px; margin-bottom: 1rem; }
-    .status.connected { background: #14532d; color: #4ade80; }
-    .status.disconnected { background: #3f1515; color: #f87171; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; }
-    .status.connected .status-dot { background: #4ade80; animation: pulse 2s infinite; }
-    .status.disconnected .status-dot { background: #f87171; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .log { background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 0.75rem; height: 280px; overflow-y: auto; font-size: 0.78rem; font-family: 'Cascadia Code', 'Fira Code', monospace; }
-    .log-entry { padding: 0.3rem 0; border-bottom: 1px solid #1e2130; line-height: 1.5; }
-    .log-entry:last-child { border-bottom: none; }
-    .log-entry .time { color: #475569; margin-right: 0.5rem; }
-    .log-entry.incoming .badge { background: #14532d; color: #4ade80; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
-    .log-entry.outgoing .badge { background: #1e3a5f; color: #60a5fa; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
-    .log-entry.system .badge { background: #3b2f14; color: #fbbf24; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
-    .log-entry.error .badge { background: #3f1515; color: #f87171; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 0.4rem; }
-    .log-entry .body { color: #cbd5e1; word-break: break-all; }
-    .full-width { grid-column: 1 / -1; }
-    .hint { font-size: 0.75rem; color: #475569; margin-top: 0.4rem; line-height: 1.5; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-ink: #071015;
+      --bg-deep: #0e1b21;
+      --card: rgba(14, 28, 36, 0.82);
+      --card-border: rgba(109, 161, 181, 0.25);
+      --text: #e6f6fb;
+      --text-soft: #b4ced9;
+      --muted: #7ca0b0;
+      --aqua: #1cc8c8;
+      --sun: #f59e0b;
+      --lime: #22c55e;
+      --rose: #ef4444;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at -10% -10%, rgba(245, 158, 11, 0.18), transparent 65%),
+        radial-gradient(900px 420px at 110% 0%, rgba(28, 200, 200, 0.2), transparent 60%),
+        linear-gradient(145deg, var(--bg-ink), var(--bg-deep));
+      padding: 2rem 1.2rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      line-height: 1.5;
+    }
+
+    .app-shell {
+      width: min(1140px, 100%);
+      margin: 0 auto;
+      animation: rise 420ms ease-out;
+    }
+
+    .hero {
+      display: grid;
+      gap: 0.8rem;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(130deg, rgba(245, 158, 11, 0.15), rgba(28, 200, 200, 0.09));
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 22px;
+      padding: 1.4rem 1.3rem;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      width: fit-content;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(7, 16, 21, 0.48);
+      border: 1px solid rgba(230, 246, 251, 0.2);
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #d9ebf2;
+    }
+
+    h1 {
+      font-size: clamp(1.45rem, 2.5vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-soft);
+      font-size: 0.92rem;
+      max-width: 78ch;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(9px);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 1.2rem;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition: transform 180ms ease, border-color 180ms ease;
+      animation: rise 420ms ease-out;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(28, 200, 200, 0.35);
+    }
+
+    .span-6 {
+      grid-column: span 6;
+    }
+
+    .span-12 {
+      grid-column: span 12;
+    }
+
+    .card h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #8db0c0;
+      margin-bottom: 0.9rem;
+    }
+
+    label {
+      display: block;
+      margin-top: 0.75rem;
+      margin-bottom: 0.35rem;
+      color: #94b6c5;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid rgba(124, 160, 176, 0.28);
+      background: rgba(6, 14, 18, 0.7);
+      border-radius: 11px;
+      color: var(--text);
+      padding: 0.68rem 0.8rem;
+      font-size: 0.86rem;
+      font-family: "JetBrains Mono", monospace;
+      outline: none;
+      transition: all 180ms ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #608090;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(28, 200, 200, 0.7);
+      box-shadow: 0 0 0 4px rgba(28, 200, 200, 0.15);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 98px;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-top: 0.95rem;
+    }
+
+    .btn {
+      margin-top: 0.75rem;
+      padding: 0.64rem 0.96rem;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      font-weight: 700;
+      font-size: 0.83rem;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 140ms ease, opacity 140ms ease, box-shadow 140ms ease;
+      color: #fff;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #1cc8c8, #0ea5e9);
+      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.25);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.22);
+    }
+
+    .btn-secondary {
+      color: #d4edf6;
+      background: rgba(124, 160, 176, 0.18);
+      border-color: rgba(124, 160, 176, 0.35);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.38rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 0.8rem;
+      border: 1px solid transparent;
+    }
+
+    .status.connected {
+      background: rgba(34, 197, 94, 0.14);
+      color: #6de4a0;
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .status.disconnected {
+      background: rgba(239, 68, 68, 0.14);
+      color: #ff8a8a;
+      border-color: rgba(239, 68, 68, 0.28);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status.connected .status-dot {
+      background: #6de4a0;
+      animation: pulse 2s infinite;
+    }
+
+    .status.disconnected .status-dot {
+      background: #ff8a8a;
+    }
+
+    .log {
+      background: rgba(5, 12, 16, 0.82);
+      border: 1px solid rgba(124, 160, 176, 0.24);
+      border-radius: 12px;
+      height: 300px;
+      overflow-y: auto;
+      padding: 0.75rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.76rem;
+    }
+
+    .log::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .log::-webkit-scrollbar-thumb {
+      background: rgba(124, 160, 176, 0.26);
+      border-radius: 999px;
+    }
+
+    .log-entry {
+      padding: 0.35rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      line-height: 1.5;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-entry .time {
+      color: #577387;
+      margin-right: 0.42rem;
+    }
+
+    .log-entry .badge {
+      border-radius: 5px;
+      padding: 2px 6px;
+      margin-right: 0.35rem;
+      font-size: 0.67rem;
+      font-weight: 700;
+    }
+
+    .log-entry.incoming .badge {
+      background: rgba(34, 197, 94, 0.2);
+      color: #90f0b7;
+    }
+
+    .log-entry.outgoing .badge {
+      background: rgba(14, 165, 233, 0.2);
+      color: #8ed7f8;
+    }
+
+    .log-entry.system .badge {
+      background: rgba(245, 158, 11, 0.2);
+      color: #ffcb75;
+    }
+
+    .log-entry.error .badge {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ff9ea0;
+    }
+
+    .log-entry .body {
+      color: #c4dfeb;
+      word-break: break-word;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 0.4rem;
+      line-height: 1.5;
+    }
+
+    .inline-note {
+      color: #d5ecf4;
+      font-weight: 700;
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    @keyframes rise {
+      from {
+        transform: translateY(10px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .span-6,
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      body {
+        padding: 1rem;
+      }
+
+      .hero {
+        border-radius: 16px;
+      }
+    }
   </style>
 </head>
 <body>
 
-<h1>🔌 FlowDesk — WebSocket Tester</h1>
-<p class="subtitle">Prueba los comentarios en tiempo real de FlowDesk</p>
+<main class="app-shell">
+  <section class="hero">
+    <span class="hero-kicker">Realtime Lab</span>
+    <h1>FlowDesk WebSocket Console</h1>
+    <p class="subtitle">Panel de prueba para validar comentarios en vivo entre pestañas sin polling. La lógica del cliente y del broker se mantiene igual, solo cambió el look and feel.</p>
+  </section>
 
 <div class="grid">
 
   <!-- Conexión -->
-  <div class="card">
+  <div class="card span-6">
     <h2>1. Conectar</h2>
 
     <div id="statusBadge" class="status disconnected">
@@ -76,7 +408,7 @@
   </div>
 
   <!-- Suscripción -->
-  <div class="card">
+  <div class="card span-6">
     <h2>2. Suscribirse a una tarea</h2>
     <p class="hint" style="margin-bottom: 0.75rem">Al suscribirte, recibirás en tiempo real todos los comentarios nuevos que se envíen a esa tarea — desde esta página o desde Postman.</p>
 
@@ -91,7 +423,7 @@
   </div>
 
   <!-- Enviar comentario -->
-  <div class="card">
+  <div class="card span-6">
     <h2>3. Enviar comentario por WebSocket</h2>
     <p class="hint" style="margin-bottom: 0.75rem">Este comentario viaja por el canal WebSocket abierto — sin hacer un POST HTTP. El servidor lo guarda y lo brodcastea a todos los suscritos.</p>
 
@@ -104,7 +436,7 @@
   </div>
 
   <!-- Log -->
-  <div class="card">
+  <div class="card span-6">
     <h2>Monitor de mensajes</h2>
     <div class="log" id="log">
       <div class="log-entry system">
@@ -115,16 +447,17 @@
   </div>
 
   <!-- Instrucciones -->
-  <div class="card full-width">
+  <div class="card span-12">
     <h2>Cómo probar en tiempo real</h2>
     <p class="hint">
-      <strong style="color:#e2e8f0">Prueba básica (1 ventana):</strong> Conéctate, suscríbete a una tarea, envía un comentario por WebSocket. Verás el mensaje aparecer en el monitor instantáneamente — el servidor lo recibió, lo guardó en la BD y te lo retransmitió.<br><br>
-      <strong style="color:#e2e8f0">Prueba en tiempo real (2 ventanas):</strong> Abre esta página en dos pestañas del navegador. En ambas conéctate y suscríbete al mismo taskId. Cuando envíes un comentario desde una pestaña, aparecerá instantáneamente en la otra — sin recargar, sin polling. Así es como funciona en producción.<br><br>
-      <strong style="color:#e2e8f0">Prueba mixta:</strong> Envía el comentario desde Postman (POST /api/tasks/{taskId}/comments) y mira cómo aparece en esta página en tiempo real. El backend hace el broadcast automáticamente al guardar el comentario.
+      <span class="inline-note">Prueba básica (1 ventana):</span> Conéctate, suscríbete a una tarea y envía un comentario por WebSocket. Debe aparecer al instante en el monitor.<br><br>
+      <span class="inline-note">Prueba en tiempo real (2 ventanas):</span> Abre esta página en dos pestañas, conecta ambas y usa el mismo taskId. Al enviar desde una pestaña, la otra debe reflejar el evento en vivo.<br><br>
+      <span class="inline-note">Prueba mixta:</span> Envía desde Postman (POST /api/tasks/{taskId}/comments) y verifica el broadcast en esta consola.
     </p>
   </div>
 
 </div>
+</main>
 
 <script>
   let stompClient = null;

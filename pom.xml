@@ -112,6 +112,18 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- PDF generation (iText) -->
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>kernel</artifactId>
+			<version>8.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>layout</artifactId>
+			<version>8.0.4</version>
+		</dependency>
+
 		<!-- H2 solo para tests -->
 		<dependency>
 			<groupId>com.h2database</groupId>
