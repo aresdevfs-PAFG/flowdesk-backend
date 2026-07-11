@@ -218,7 +218,7 @@ Lo que queda fuera del MVP (versiones futuras):
 | Fase 4 | Time Tracking + Comments WebSocket | ✅ Completada |
 | Fase 5 | Billing + generación de facturas PDF | ✅ Completada |
 | Fase 6 | Reports + Notifications | ✅ Completada |
-| Fase 7 | Frontend React — base + Kanban | Pendiente |
+| Fase 7 | Frontend React — base + Kanban | En progreso — base, auth y dashboard implementados |
 | Fase 8 | Frontend React — Billing + Reports | Pendiente |
 | Fase 9 | Testing + Swagger + Docker + Deploy | Pendiente |
 
