@@ -1,25 +1,24 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowRight, Layers3, ShieldCheck, Sparkles } from 'lucide-react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { getApiError } from '../../lib/api'
 import { useAuthStore } from '../../stores/auth-store'
-import { login } from './auth-api'
+import { register } from './auth-api'
 
-export function LoginPage() {
+export function RegisterPage() {
   const session = useAuthStore((state) => state.session)
   const setSession = useAuthStore((state) => state.setSession)
   const navigate = useNavigate()
-  const location = useLocation()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const mutation = useMutation({
-    mutationFn: login,
+    mutationFn: register,
     onSuccess: (data) => {
       setSession(data)
-      const destination = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/'
-      navigate(destination, { replace: true })
+      navigate('/', { replace: true })
     },
   })
 
@@ -27,7 +26,7 @@ export function LoginPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    mutation.mutate({ email, password })
+    mutation.mutate({ name, email, password })
   }
 
   return (
@@ -36,12 +35,12 @@ export function LoginPage() {
         <div className="absolute -left-28 top-12 h-96 w-96 rounded-full bg-brand-500/15 blur-3xl" />
         <Brand />
         <div className="relative max-w-xl">
-          <p className="eyebrow">Trabajo claro. Negocio saludable.</p>
+          <p className="eyebrow">Tu operacion, en un solo lugar</p>
           <h1 className="mt-5 text-6xl font-semibold leading-[1.05] tracking-[-0.055em] text-white">
-            Del tablero a la factura, sin perder el ritmo.
+            Construye un lugar mejor para hacer el trabajo.
           </h1>
           <p className="mt-7 max-w-lg text-base leading-7 text-slate-400">
-            Gestiona proyectos, registra cada minuto y convierte el trabajo de tu equipo en resultados medibles.
+            Crea tu cuenta, organiza tu primer workspace y comienza a dar visibilidad a cada proyecto.
           </p>
         </div>
         <div className="relative flex gap-7 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -53,20 +52,25 @@ export function LoginPage() {
       <section className="flex items-center justify-center px-6 py-12 sm:px-12">
         <div className="w-full max-w-md">
           <div className="mb-12 lg:hidden"><Brand /></div>
-          <p className="eyebrow">Bienvenido de vuelta</p>
-          <h2 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white">Entra a tu espacio</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-400">Usa la cuenta registrada en el backend de FlowDesk.</p>
+          <p className="eyebrow">Comienza ahora</p>
+          <h2 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white">Crea tu cuenta</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-400">Tu primer workspace estara listo en menos de un minuto.</p>
 
           <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
             <label className="block">
-              <span className="mb-2 block text-xs font-semibold text-slate-300">Correo electrónico</span>
+              <span className="mb-2 block text-xs font-semibold text-slate-300">Tu nombre</span>
+              <input className="field" type="text" autoComplete="name" value={name}
+                onChange={(event) => setName(event.target.value)} placeholder="Como te llamamos?" required />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-semibold text-slate-300">Correo electronico</span>
               <input className="field" type="email" autoComplete="email" value={email}
                 onChange={(event) => setEmail(event.target.value)} placeholder="tu@equipo.com" required />
             </label>
             <label className="block">
-              <span className="mb-2 block text-xs font-semibold text-slate-300">Contraseña</span>
-              <input className="field" type="password" autoComplete="current-password" value={password}
-                onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo 8 caracteres" required />
+              <span className="mb-2 block text-xs font-semibold text-slate-300">Contrasena</span>
+              <input className="field" type="password" autoComplete="new-password" minLength={8} value={password}
+                onChange={(event) => setPassword(event.target.value)} placeholder="Minimo 8 caracteres" required />
             </label>
 
             {mutation.isError && (
@@ -77,13 +81,13 @@ export function LoginPage() {
 
             <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-brand-400 disabled:cursor-wait disabled:opacity-60"
               disabled={mutation.isPending}>
-              {mutation.isPending ? 'Entrando…' : 'Entrar a FlowDesk'}
+              {mutation.isPending ? 'Creando cuenta...' : 'Crear mi cuenta'}
               {!mutation.isPending && <ArrowRight size={17} />}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-slate-400">
-            Aun no tienes cuenta?{' '}
-            <Link className="font-bold text-brand-400 hover:text-brand-300" to="/register">Crea tu espacio</Link>
+            Ya tienes cuenta?{' '}
+            <Link className="font-bold text-brand-400 hover:text-brand-300" to="/login">Inicia sesion</Link>
           </p>
         </div>
       </section>

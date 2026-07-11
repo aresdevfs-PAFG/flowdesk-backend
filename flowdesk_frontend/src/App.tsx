@@ -1,16 +1,22 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './features/auth/LoginPage'
+import { RegisterPage } from './features/auth/RegisterPage'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { WorkspacePage } from './features/workspaces/WorkspacePage'
+import { ProjectBoardPage } from './features/projects/ProjectBoardPage'
 import { AppShell } from './layouts/AppShell'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
+          <Route path="workspaces/:workspaceId" element={<WorkspacePage />} />
+          <Route path="workspaces/:workspaceId/projects/:projectId" element={<ProjectBoardPage />} />
           <Route path="projects" element={<Placeholder title="Proyectos" />} />
           <Route path="reports" element={<Placeholder title="Reportes" />} />
           <Route path="billing" element={<Placeholder title="Facturación" />} />

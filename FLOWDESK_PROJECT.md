@@ -102,7 +102,7 @@ Ser la plataforma de referencia para freelancers y equipos de hasta 20 personas 
 | Migraciones | Flyway |
 | Tiempo real | WebSockets (STOMP) |
 | Mapeo de objetos | MapStruct 1.6.3 |
-| Frontend | React 18 + Tailwind CSS |
+| Frontend | React 19 + Tailwind CSS |
 | Build tool | Maven |
 | Control de versiones | Git + GitHub |
 
@@ -218,7 +218,7 @@ Lo que queda fuera del MVP (versiones futuras):
 | Fase 4 | Time Tracking + Comments WebSocket | ✅ Completada |
 | Fase 5 | Billing + generación de facturas PDF | ✅ Completada |
 | Fase 6 | Reports + Notifications | ✅ Completada |
-| Fase 7 | Frontend React — base + Kanban | En progreso — base, auth y dashboard implementados |
+| Fase 7 | Frontend React — base + Kanban | En progreso — base, auth (login/registro), dashboard, workspaces, proyectos y Kanban de tareas implementados |
 | Fase 8 | Frontend React — Billing + Reports | Pendiente |
 | Fase 9 | Testing + Swagger + Docker + Deploy | Pendiente |
 
