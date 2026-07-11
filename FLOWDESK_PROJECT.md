@@ -79,11 +79,15 @@ Ser la plataforma de referencia para freelancers y equipos de hasta 20 personas 
 
 ### Notificaciones
 - Alertas en tiempo real: tarea asignada, comentario nuevo, fecha límite próxima
+- Persistencia en base de datos, contador de no leídas y marcado individual o masivo
+- Canal privado STOMP `/user/queue/notifications`, autenticado con JWT durante `CONNECT`
+- Recordatorios automáticos para tareas que vencen hoy o al día siguiente
 
 ### Reportes
 - Horas invertidas por proyecto y por usuario
 - Tareas completadas vs pendientes
-- Productividad del equipo por período
+- Resumen económico calculado con la tarifa horaria del proyecto
+- Filtro opcional por período y exportación CSV
 
 ---
 
@@ -141,6 +145,7 @@ PostgreSQL (Flyway migrations)
 | `comments` | Comentarios por tarea |
 | `invoices` | Facturas por proyecto |
 | `invoice_items` | Líneas de detalle de cada factura |
+| `notifications` | Alertas persistentes, estado de lectura y referencia al recurso relacionado |
 
 ---
 
@@ -211,11 +216,37 @@ Lo que queda fuera del MVP (versiones futuras):
 | Fase 2 | Spring Security + JWT, Auth endpoints | ✅ Completada  |
 | Fase 3 | Workspaces, Projects, Tasks CRUD + Kanban | ✅ Completada |
 | Fase 4 | Time Tracking + Comments WebSocket | ✅ Completada |
-| Fase 5 | Billing + generación de facturas PDF | Pendiente |
-| Fase 6 | Reports + Notifications | Pendiente |
+| Fase 5 | Billing + generación de facturas PDF | ✅ Completada |
+| Fase 6 | Reports + Notifications | ✅ Completada |
 | Fase 7 | Frontend React — base + Kanban | Pendiente |
 | Fase 8 | Frontend React — Billing + Reports | Pendiente |
 | Fase 9 | Testing + Swagger + Docker + Deploy | Pendiente |
+
+---
+
+## Contrato de Reports y Notifications
+
+Todos los endpoints requieren `Authorization: Bearer <token>`.
+
+### Reports
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/projects/{projectId}/reports/summary` | Resumen de horas, importe, tareas y distribución por usuario |
+| `GET` | `/api/projects/{projectId}/reports/summary.csv` | Descarga el mismo resumen en CSV |
+
+Ambos aceptan `fromDate` y `toDate` opcionales en formato `YYYY-MM-DD`. El período filtra los registros de tiempo; las métricas de tareas representan el estado actual del tablero. Solo los miembros del proyecto pueden consultar sus reportes.
+
+### Notifications
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/notifications/me` | Lista las notificaciones del usuario; acepta `unreadOnly=true` |
+| `GET` | `/api/notifications/unread-count` | Devuelve el contador de no leídas |
+| `PATCH` | `/api/notifications/{notificationId}/read` | Marca una notificación propia como leída |
+| `PATCH` | `/api/notifications/read-all` | Marca todas las notificaciones propias como leídas |
+
+El cliente WebSocket se conecta a `/ws`, envía el JWT en el header STOMP `Authorization` y se suscribe a `/user/queue/notifications`. Las notificaciones se generan mediante eventos internos después de confirmar la transacción que originó la asignación o el comentario. El recordatorio de vencimiento se ejecuta diariamente a las 08:00 en `America/Mexico_City`; ambos valores se pueden cambiar con `app.notifications.due-date-cron` y `app.notifications.time-zone`.
 
 ---
 
@@ -230,4 +261,4 @@ Este proyecto nació con el doble propósito de aprender Spring Boot y React en 
 
 ---
 
-*Documento generado en Abril 2026 — versión viva, se actualiza con cada fase completada.*
+*Documento generado en Abril 2026 y actualizado en Julio 2026 — versión viva, se actualiza con cada fase completada.*

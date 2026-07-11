@@ -1,6 +1,7 @@
 package com.areswayne.flowdesk.domain.task;
 
 import com.areswayne.flowdesk.domain.project.Project;
+import com.areswayne.flowdesk.domain.notification.event.NotificationRequestedEvent;
 import com.areswayne.flowdesk.domain.project.ProjectMemberRepository;
 import com.areswayne.flowdesk.domain.project.ProjectRepository;
 import com.areswayne.flowdesk.domain.task.dto.ReorderRequest;
@@ -11,9 +12,11 @@ import com.areswayne.flowdesk.domain.user.User;
 import com.areswayne.flowdesk.domain.user.UserRepository;
 import com.areswayne.flowdesk.shared.enums.Priority;
 import com.areswayne.flowdesk.shared.enums.TaskStatus;
+import com.areswayne.flowdesk.shared.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -27,6 +30,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public TaskResponse create(UUID projectId, TaskRequest request) {
@@ -39,11 +43,7 @@ public class TaskService {
         // La nueva tarea va al final del tablero
         int nextPosition = taskRepository.findMaxPositionByProjectId(projectId) + 1;
 
-        User assignee = null;
-        if (request.assigneeId() != null) {
-            assignee = userRepository.findById(request.assigneeId())
-                    .orElseThrow(() -> new IllegalArgumentException("Usuario asignado no encontrado"));
-        }
+        User assignee = findValidAssignee(projectId, request.assigneeId());
 
         Task task = Task.builder()
                 .project(project)
@@ -56,7 +56,9 @@ public class TaskService {
                 .dueDate(request.dueDate())
                 .build();
 
-        return toResponse(taskRepository.save(task));
+        Task saved = taskRepository.save(task);
+        publishAssignmentNotification(saved, current);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -88,12 +90,10 @@ public class TaskService {
     @Transactional
     public TaskResponse update(UUID taskId, TaskRequest request) {
         Task task = findAndValidateAccess(taskId);
+        User current = getCurrentUser();
+        UUID previousAssigneeId = task.getAssignee() == null ? null : task.getAssignee().getId();
 
-        User assignee = null;
-        if (request.assigneeId() != null) {
-            assignee = userRepository.findById(request.assigneeId())
-                    .orElseThrow(() -> new IllegalArgumentException("Usuario asignado no encontrado"));
-        }
+        User assignee = findValidAssignee(task.getProject().getId(), request.assigneeId());
 
         task.setTitle(request.title());
         task.setDescription(request.description());
@@ -101,7 +101,12 @@ public class TaskService {
         task.setAssignee(assignee);
         task.setDueDate(request.dueDate());
 
-        return toResponse(taskRepository.save(task));
+        Task saved = taskRepository.save(task);
+        UUID newAssigneeId = assignee == null ? null : assignee.getId();
+        if (!java.util.Objects.equals(previousAssigneeId, newAssigneeId)) {
+            publishAssignmentNotification(saved, current);
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -170,6 +175,25 @@ public class TaskService {
                 .getAuthentication().getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+    }
+
+    private User findValidAssignee(UUID projectId, UUID assigneeId) {
+        if (assigneeId == null) return null;
+        if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, assigneeId)) {
+            throw new IllegalArgumentException("El usuario asignado debe pertenecer al proyecto");
+        }
+        return userRepository.findById(assigneeId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario asignado no encontrado"));
+    }
+
+    private void publishAssignmentNotification(Task task, User actor) {
+        if (task.getAssignee() == null || task.getAssignee().getId().equals(actor.getId())) return;
+        eventPublisher.publishEvent(new NotificationRequestedEvent(
+                task.getAssignee().getId(), NotificationType.TASK_ASSIGNED,
+                "Nueva tarea asignada",
+                actor.getName() + " te asignó la tarea \"" + task.getTitle() + "\"",
+                "TASK", task.getId(), null
+        ));
     }
 
     private TaskResponse toResponse(Task t) {

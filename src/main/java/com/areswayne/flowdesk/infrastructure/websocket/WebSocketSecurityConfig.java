@@ -47,9 +47,19 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
                                 accessor.setUser(auth);
                             }
                         } catch (Exception e) {
-                            // Token inválido — la conexión se rechaza
+                            throw new IllegalArgumentException("Token WebSocket inválido", e);
                         }
                     }
+                    if (accessor.getUser() == null) {
+                        throw new IllegalArgumentException("Se requiere un token Bearer válido para WebSocket");
+                    }
+                }
+
+                if (accessor != null
+                        && (StompCommand.SEND.equals(accessor.getCommand())
+                        || StompCommand.SUBSCRIBE.equals(accessor.getCommand()))
+                        && accessor.getUser() == null) {
+                    throw new IllegalArgumentException("Sesión WebSocket no autenticada");
                 }
 
                 return message;

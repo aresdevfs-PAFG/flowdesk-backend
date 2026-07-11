@@ -2,11 +2,15 @@ package com.areswayne.flowdesk.domain.comment;
 
 import com.areswayne.flowdesk.domain.comment.dto.CommentRequest;
 import com.areswayne.flowdesk.domain.comment.dto.CommentResponse;
+import com.areswayne.flowdesk.domain.notification.event.NotificationRequestedEvent;
+import com.areswayne.flowdesk.domain.project.ProjectMemberRepository;
 import com.areswayne.flowdesk.domain.task.Task;
 import com.areswayne.flowdesk.domain.task.TaskRepository;
 import com.areswayne.flowdesk.domain.user.User;
 import com.areswayne.flowdesk.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import com.areswayne.flowdesk.shared.enums.NotificationType;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,8 @@ public class CommentService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public CommentResponse create(UUID taskId, CommentRequest request) {
@@ -39,6 +45,7 @@ public class CommentService {
     private CommentResponse createComment(UUID taskId, CommentRequest request, User author) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
+        validateProjectAccess(task, author);
 
         Comment comment = Comment.builder()
                 .task(task)
@@ -55,13 +62,23 @@ public class CommentService {
                 response
         );
 
+        if (task.getAssignee() != null && !task.getAssignee().getId().equals(author.getId())) {
+            eventPublisher.publishEvent(new NotificationRequestedEvent(
+                    task.getAssignee().getId(), NotificationType.COMMENT_CREATED,
+                    "Nuevo comentario",
+                    author.getName() + " comentó en la tarea \"" + task.getTitle() + "\"",
+                    "TASK", task.getId(), null
+            ));
+        }
+
         return response;
     }
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getByTask(UUID taskId) {
-        taskRepository.findById(taskId)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
+        validateProjectAccess(task, getCurrentUser());
 
         return commentRepository.findByTaskIdOrderByCreatedAtAsc(taskId)
                 .stream()
@@ -121,6 +138,12 @@ public class CommentService {
                 .getAuthentication().getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+    }
+
+    private void validateProjectAccess(Task task, User user) {
+        if (!projectMemberRepository.existsByProjectIdAndUserId(task.getProject().getId(), user.getId())) {
+            throw new SecurityException("No tienes acceso a este proyecto");
+        }
     }
 
     private CommentResponse toResponse(Comment c) {
